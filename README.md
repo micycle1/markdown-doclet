@@ -1,3 +1,5 @@
+[![](https://jitpack.io/v/micycle1/markdown-doclet.svg)](https://jitpack.io/#micycle1/markdown-doclet)
+
 # markdown-doclet
 
 A Javadoc doclet that writes one Markdown file per class. It is intended for compact API reference output that can be read directly or used as LLM/RAG context.
