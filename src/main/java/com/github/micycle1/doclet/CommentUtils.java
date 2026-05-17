@@ -122,11 +122,23 @@ public final class CommentUtils {
 
     /** Remove residual HTML tags from old-style Javadoc comments */
     private static String stripHtml(String text) {
-        // Remove tags but keep content (e.g. <p>, <br>, <em>, <strong>)
-        String stripped = text.replaceAll("<[^>]+>", " ");
-        // Collapse multiple spaces/newlines
+        String stripped = text.replace("\r\n", "\n").replace('\r', '\n');
+
+        // Preserve paragraph boundaries before removing residual HTML.
+        stripped = stripped.replaceAll("(?i)</?p\\b[^>]*>", "\n\n");
+        stripped = stripped.replaceAll("(?i)<br\\s*/?>", "\n\n");
+        stripped = stripped.replaceAll("<[^>]+>", " ");
+
+        // Hard-wrapped Javadoc source lines should render as a single Markdown
+        // paragraph line; only paragraph boundaries keep line breaks.
         stripped = stripped.replaceAll("[ \t]+", " ");
+        stripped = stripped.replaceAll(" *\\n *", "\n");
+        stripped = stripped.replaceAll("\n{2,}", "\u0000");
+        stripped = stripped.replace('\n', ' ');
+        stripped = stripped.replaceAll(" {2,}", " ");
+        stripped = stripped.replace('\u0000', '\n');
         stripped = stripped.replaceAll("\n{3,}", "\n\n");
+        stripped = stripped.replaceAll(" *\n *", "\n");
         return stripped;
     }
 }

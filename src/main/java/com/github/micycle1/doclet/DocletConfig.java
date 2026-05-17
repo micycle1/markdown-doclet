@@ -22,6 +22,7 @@ public class DocletConfig {
     private String outputDir = "references";
     private List<String> subpackages = List.of();
     private List<String> excludedPackages = List.of();
+    private boolean cleanOutput = true;
 
     // ── Per-element inclusion toggles ─────────────────────────────────────────
     private boolean includeParams       = true;   // @param descriptions
@@ -53,6 +54,7 @@ public class DocletConfig {
     public String  getOutputDir()          { return outputDir; }
     public List<String> getSubpackages()   { return subpackages; }
     public List<String> getExcludedPackages() { return excludedPackages; }
+    public boolean isCleanOutput()         { return cleanOutput; }
     public boolean isIncludeParams()       { return includeParams; }
     public boolean isIncludeReturn()       { return includeReturn; }
     public boolean isIncludeThrows()       { return includeThrows; }
@@ -73,6 +75,7 @@ public class DocletConfig {
         opts.add(strOption("-subpackages", "Included package prefixes", v -> subpackages = splitPackages(v)));
         opts.add(strOption("-exclude", "Excluded package prefixes", v -> excludedPackages = splitPackages(v)));
         opts.add(strOption("-excludePackageNames", "Excluded package prefixes", v -> excludedPackages = splitPackages(v)));
+        opts.add(boolOption("-cleanOutput",       v -> cleanOutput = v));
 
         opts.add(boolOption("-includeParams",        v -> includeParams = v));
         opts.add(boolOption("-includeReturn",        v -> includeReturn = v));

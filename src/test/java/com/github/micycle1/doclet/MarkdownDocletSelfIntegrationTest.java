@@ -46,6 +46,9 @@ class MarkdownDocletSelfIntegrationTest {
         String builderMarkdown = Files.readString(outputDir.resolve("MarkdownBuilder.md"));
         assertTrue(builderMarkdown.contains("## codeBlock"));
         assertTrue(builderMarkdown.contains("```java\npublic MarkdownBuilder codeBlock(String code, String language)\n```"));
+        assertTrue(builderMarkdown.contains(
+                "Thin wrapper around StringBuilder with convenience methods for generating clean Markdown output."));
+        assertFalse(builderMarkdown.contains("convenience methods\nfor generating clean Markdown output."));
         assertTrue(builderMarkdown.contains("**Parameters:** `code`"));
     }
 
@@ -53,6 +56,8 @@ class MarkdownDocletSelfIntegrationTest {
     void excludesConfiguredPackages() throws Exception {
         Path outputDir = FILTER_OUTPUT_DIR.toAbsolutePath();
         deleteDirectory(outputDir);
+        Files.createDirectories(outputDir);
+        Files.writeString(outputDir.resolve("StaleExcludedClass.md"), "old output");
 
         runJavadoc(
                 outputDir,

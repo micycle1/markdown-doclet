@@ -53,6 +53,9 @@ public class MarkdownDoclet implements Doclet {
         Path outDir = Path.of(config.getOutputDir());
         try {
             Files.createDirectories(outDir);
+            if (config.isCleanOutput()) {
+                cleanMarkdownFiles(outDir);
+            }
         } catch (IOException e) {
             reporter.print(javax.tools.Diagnostic.Kind.ERROR,
                     "Cannot create output dir: " + e.getMessage());
@@ -74,6 +77,14 @@ public class MarkdownDoclet implements Doclet {
             }
         }
         return true;
+    }
+
+    private static void cleanMarkdownFiles(Path outDir) throws IOException {
+        try (var paths = Files.list(outDir)) {
+            for (Path path : paths.filter(p -> p.getFileName().toString().endsWith(".md")).toList()) {
+                Files.delete(path);
+            }
+        }
     }
 
     private boolean isIncluded(TypeElement classElement) {

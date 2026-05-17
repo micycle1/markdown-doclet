@@ -115,6 +115,7 @@ option name, then its value.
 | Option | Default | Description |
 |---|---:|---|
 | `-outputDir` | `references` | Output directory |
+| `-cleanOutput` | `true` | Delete existing top-level `.md` files in the output directory before writing |
 | `-subpackages` |  | Include only these package prefixes |
 | `-excludePackageNames` |  | Exclude these package prefixes |
 | `-exclude` |  | Alias for `-excludePackageNames` |
