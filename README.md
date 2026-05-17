@@ -116,6 +116,7 @@ option name, then its value.
 |---|---:|---|
 | `-outputDir` | `references` | Output directory |
 | `-cleanOutput` | `true` | Delete existing top-level `.md` files in the output directory before writing |
+| `-nestedTypes` | `inline` | Handle nested classes/enums/interfaces: `omit`, `inline` in the containing file, or write `separate` files |
 | `-subpackages` |  | Include only these package prefixes |
 | `-excludePackageNames` |  | Exclude these package prefixes |
 | `-exclude` |  | Alias for `-excludePackageNames` |

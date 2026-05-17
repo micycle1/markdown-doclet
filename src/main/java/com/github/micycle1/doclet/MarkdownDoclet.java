@@ -6,6 +6,7 @@ import jdk.javadoc.doclet.Reporter;
 
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.ElementFilter;
@@ -62,11 +63,9 @@ public class MarkdownDoclet implements Doclet {
             return false;
         }
 
-        // One writer per class
-        for (TypeElement classElement : ElementFilter.typesIn(env.getIncludedElements())) {
-            if (!isIncluded(classElement)) {
-                continue;
-            }
+        // One writer per output type. Nested types are inline by default.
+        Set<TypeElement> outputTypes = collectOutputTypes(env);
+        for (TypeElement classElement : outputTypes) {
             ClassMarkdownWriter writer = new ClassMarkdownWriter(
                     classElement, env.getDocTrees(), config, reporter);
             try {
@@ -77,6 +76,31 @@ public class MarkdownDoclet implements Doclet {
             }
         }
         return true;
+    }
+
+    private Set<TypeElement> collectOutputTypes(DocletEnvironment env) {
+        Set<TypeElement> outputTypes = new LinkedHashSet<>();
+        for (TypeElement classElement : ElementFilter.typesIn(env.getIncludedElements())) {
+            if (!isIncluded(classElement)) {
+                continue;
+            }
+            if (config.getNestedTypes() == DocletConfig.NestedTypes.SEPARATE) {
+                addTypeAndNestedTypes(outputTypes, classElement);
+            } else if (isTopLevel(classElement)) {
+                outputTypes.add(classElement);
+            }
+        }
+        return outputTypes;
+    }
+
+    private void addTypeAndNestedTypes(Set<TypeElement> outputTypes, TypeElement classElement) {
+        if (!isIncluded(classElement) || !isVisible(classElement)) {
+            return;
+        }
+        outputTypes.add(classElement);
+        for (TypeElement nestedType : ElementFilter.typesIn(classElement.getEnclosedElements())) {
+            addTypeAndNestedTypes(outputTypes, nestedType);
+        }
     }
 
     private static void cleanMarkdownFiles(Path outDir) throws IOException {
@@ -96,6 +120,17 @@ public class MarkdownDoclet implements Doclet {
                 || matchesAnyPackagePrefix(packageName, config.getSubpackages());
     }
 
+    private boolean isVisible(Element e) {
+        Set<Modifier> mods = e.getModifiers();
+        if (mods.contains(Modifier.PRIVATE)) {
+            return config.isIncludePrivate();
+        }
+        if (!mods.contains(Modifier.PUBLIC) && !mods.contains(Modifier.PROTECTED)) {
+            return config.isIncludePackagePrivate();
+        }
+        return true;
+    }
+
     private static boolean matchesAnyPackagePrefix(String packageName, List<String> prefixes) {
         for (String prefix : prefixes) {
             if (packageName.equals(prefix) || packageName.startsWith(prefix + ".")) {
@@ -111,5 +146,9 @@ public class MarkdownDoclet implements Doclet {
             element = element.getEnclosingElement();
         }
         return element == null ? "" : element.toString();
+    }
+
+    private static boolean isTopLevel(TypeElement classElement) {
+        return classElement.getEnclosingElement() instanceof PackageElement;
     }
 }

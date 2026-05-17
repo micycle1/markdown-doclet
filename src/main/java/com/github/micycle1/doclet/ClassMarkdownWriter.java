@@ -48,16 +48,26 @@ public class ClassMarkdownWriter {
 
     public void write(Path outputDir) throws IOException {
         MarkdownBuilder md = new MarkdownBuilder();
+        writeType(md, classElement, 1);
 
-        // ── Class header ──────────────────────────────────────────────────────
+        // ── Write file ────────────────────────────────────────────────────────
         String simpleName = classElement.getSimpleName().toString();
-        md.h1(simpleName);
+        Path file = outputDir.resolve(simpleName + ".md");
+        Files.writeString(file, md.build());
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private void writeType(MarkdownBuilder md, TypeElement typeElement, int headingLevel) {
+        // ── Class header ──────────────────────────────────────────────────────
+        String simpleName = typeElement.getSimpleName().toString();
+        md.heading(headingLevel, simpleName);
         md.line();
-        md.line("**Package:** `" + classElement.getEnclosingElement().toString() + "`");
+        md.line("**Package:** `" + packageName(typeElement) + "`");
         md.line();
 
         // Class-level doc comment
-        String classDoc = CommentUtils.getMainDescription(docTrees, classElement);
+        String classDoc = CommentUtils.getMainDescription(docTrees, typeElement);
         if (!classDoc.isBlank()) {
             md.line(classDoc);
             md.line();
@@ -67,12 +77,12 @@ public class ClassMarkdownWriter {
 
         // ── Fields ────────────────────────────────────────────────────────────
         if (config.isIncludeFields()) {
-            List<VariableElement> fields = ElementFilter.fieldsIn(classElement.getEnclosedElements());
+            List<VariableElement> fields = ElementFilter.fieldsIn(typeElement.getEnclosedElements());
             List<VariableElement> visible = fields.stream()
                     .filter(f -> isVisible(f))
                     .toList();
             if (!visible.isEmpty()) {
-                md.h2("Fields");
+                md.heading(headingLevel + 1, "Fields");
                 for (VariableElement field : visible) {
                     writeField(md, field);
                 }
@@ -82,33 +92,40 @@ public class ClassMarkdownWriter {
 
         // ── Constructors ──────────────────────────────────────────────────────
         if (config.isIncludeConstructors()) {
-            List<ExecutableElement> ctors = ElementFilter.constructorsIn(classElement.getEnclosedElements());
+            List<ExecutableElement> ctors = ElementFilter.constructorsIn(typeElement.getEnclosedElements());
             List<ExecutableElement> visible = ctors.stream()
                     .filter(c -> isVisible(c))
                     .toList();
             if (!visible.isEmpty()) {
-                md.h2("Constructors");
+                md.heading(headingLevel + 1, "Constructors");
                 for (ExecutableElement ctor : visible) {
-                    writeExecutable(md, ctor, true);
+                    writeExecutable(md, typeElement, ctor, true, headingLevel + 1);
                 }
                 md.rule();
             }
         }
 
         // ── Methods ───────────────────────────────────────────────────────────
-        List<ExecutableElement> methods = ElementFilter.methodsIn(classElement.getEnclosedElements());
+        List<ExecutableElement> methods = ElementFilter.methodsIn(typeElement.getEnclosedElements());
         for (ExecutableElement method : methods) {
             if (!isVisible(method)) continue;
-            writeExecutable(md, method, false);
+            writeExecutable(md, typeElement, method, false, headingLevel + 1);
             md.rule();
         }
 
-        // ── Write file ────────────────────────────────────────────────────────
-        Path file = outputDir.resolve(simpleName + ".md");
-        Files.writeString(file, md.build());
+        if (config.getNestedTypes() == DocletConfig.NestedTypes.INLINE) {
+            List<TypeElement> nestedTypes = ElementFilter.typesIn(typeElement.getEnclosedElements()).stream()
+                    .filter(this::isVisible)
+                    .toList();
+            if (!nestedTypes.isEmpty()) {
+                md.heading(headingLevel + 1, "Nested Types");
+                md.line();
+                for (TypeElement nestedType : nestedTypes) {
+                    writeType(md, nestedType, headingLevel + 2);
+                }
+            }
+        }
     }
-
-    // ── Private helpers ───────────────────────────────────────────────────────
 
     private void writeField(MarkdownBuilder md, VariableElement field) {
         String sig = buildFieldSignature(field);
@@ -121,15 +138,15 @@ public class ClassMarkdownWriter {
         md.line();
     }
 
-    private void writeExecutable(MarkdownBuilder md, ExecutableElement exec, boolean isCtor) {
+    private void writeExecutable(MarkdownBuilder md, TypeElement owner, ExecutableElement exec, boolean isCtor, int headingLevel) {
         String name = isCtor
-                ? classElement.getSimpleName().toString()
+                ? owner.getSimpleName().toString()
                 : exec.getSimpleName().toString();
 
-        md.h2(name);
+        md.heading(headingLevel, name);
 
         // Signature
-        String sig = buildSignature(exec, isCtor);
+        String sig = buildSignature(owner, exec, isCtor);
         md.codeBlock(sig, "java");
 
         // Deprecated notice
@@ -194,7 +211,7 @@ public class ClassMarkdownWriter {
         return true;
     }
 
-    private String buildSignature(ExecutableElement exec, boolean isCtor) {
+    private String buildSignature(TypeElement owner, ExecutableElement exec, boolean isCtor) {
         StringBuilder sb = new StringBuilder();
 
         // Modifiers (skip abstract/default noise for LLM purposes)
@@ -208,7 +225,7 @@ public class ClassMarkdownWriter {
             sb.append(simplify(exec.getReturnType().toString())).append(" ");
         }
 
-        sb.append(isCtor ? classElement.getSimpleName() : exec.getSimpleName());
+        sb.append(isCtor ? owner.getSimpleName() : exec.getSimpleName());
         sb.append("(");
 
         // Parameters
@@ -251,5 +268,13 @@ public class ClassMarkdownWriter {
         if (!config.isStripPackageNames()) return typeName;
         // Handle generics like java.util.List<processing.core.PShape>
         return typeName.replaceAll("\\b[a-z][a-z0-9_.]*\\.([A-Z])", "$1");
+    }
+
+    private static String packageName(TypeElement typeElement) {
+        Element element = typeElement;
+        while (element != null && !(element instanceof PackageElement)) {
+            element = element.getEnclosingElement();
+        }
+        return element == null ? "" : element.toString();
     }
 }

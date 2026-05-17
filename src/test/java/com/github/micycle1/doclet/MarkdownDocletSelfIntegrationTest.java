@@ -19,6 +19,8 @@ class MarkdownDocletSelfIntegrationTest {
 
     private static final Path OUTPUT_DIR = Path.of("target", "markdown-doclet-self-test");
     private static final Path FILTER_OUTPUT_DIR = Path.of("target", "markdown-doclet-filter-test");
+    private static final Path NESTED_OMIT_OUTPUT_DIR = Path.of("target", "markdown-doclet-nested-omit-test");
+    private static final Path NESTED_SEPARATE_OUTPUT_DIR = Path.of("target", "markdown-doclet-nested-separate-test");
 
     @Test
     void appliesDocletToThisProject() throws Exception {
@@ -36,6 +38,7 @@ class MarkdownDocletSelfIntegrationTest {
         for (String file : expectedFiles) {
             assertTrue(Files.isRegularFile(outputDir.resolve(file)), "Expected " + file + " to be generated");
         }
+        assertFalse(Files.exists(outputDir.resolve("NestedTypes.md")), "Nested types should be inline by default");
 
         String docletMarkdown = Files.readString(outputDir.resolve("MarkdownDoclet.md"));
         assertTrue(docletMarkdown.contains("# MarkdownDoclet"));
@@ -50,6 +53,11 @@ class MarkdownDocletSelfIntegrationTest {
                 "Thin wrapper around StringBuilder with convenience methods for generating clean Markdown output."));
         assertFalse(builderMarkdown.contains("convenience methods\nfor generating clean Markdown output."));
         assertTrue(builderMarkdown.contains("**Parameters:** `code`"));
+
+        String configMarkdown = Files.readString(outputDir.resolve("DocletConfig.md"));
+        assertTrue(configMarkdown.contains("## Nested Types"));
+        assertTrue(configMarkdown.contains("### NestedTypes"));
+        assertTrue(configMarkdown.contains("#### valueOf"));
     }
 
     @Test
@@ -68,6 +76,40 @@ class MarkdownDocletSelfIntegrationTest {
         try (var paths = Files.list(outputDir)) {
             assertFalse(paths.findAny().isPresent(), "Excluded package should not generate Markdown files");
         }
+    }
+
+    @Test
+    void omitsNestedTypesWhenConfigured() throws Exception {
+        Path outputDir = NESTED_OMIT_OUTPUT_DIR.toAbsolutePath();
+        deleteDirectory(outputDir);
+
+        runJavadoc(
+                outputDir,
+                "-nestedTypes", "omit",
+                "com.github.micycle1.doclet");
+
+        String configMarkdown = Files.readString(outputDir.resolve("DocletConfig.md"));
+        assertFalse(configMarkdown.contains("## Nested Types"));
+        assertFalse(Files.exists(outputDir.resolve("NestedTypes.md")));
+    }
+
+    @Test
+    void writesNestedTypesAsSeparateFilesWhenConfigured() throws Exception {
+        Path outputDir = NESTED_SEPARATE_OUTPUT_DIR.toAbsolutePath();
+        deleteDirectory(outputDir);
+
+        runJavadoc(
+                outputDir,
+                "-nestedTypes", "separate",
+                "com.github.micycle1.doclet");
+
+        String configMarkdown = Files.readString(outputDir.resolve("DocletConfig.md"));
+        assertFalse(configMarkdown.contains("## Nested Types"));
+        assertTrue(Files.isRegularFile(outputDir.resolve("NestedTypes.md")));
+
+        String nestedMarkdown = Files.readString(outputDir.resolve("NestedTypes.md"));
+        assertTrue(nestedMarkdown.contains("# NestedTypes"));
+        assertTrue(nestedMarkdown.contains("## valueOf"));
     }
 
     private static void runJavadoc(Path outputDir, String... extraArgs) {

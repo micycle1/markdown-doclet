@@ -18,11 +18,18 @@ import java.util.*;
  */
 public class DocletConfig {
 
+    public enum NestedTypes {
+        OMIT,
+        INLINE,
+        SEPARATE
+    }
+
     // ── Output ────────────────────────────────────────────────────────────────
     private String outputDir = "references";
     private List<String> subpackages = List.of();
     private List<String> excludedPackages = List.of();
     private boolean cleanOutput = true;
+    private NestedTypes nestedTypes = NestedTypes.INLINE;
 
     // ── Per-element inclusion toggles ─────────────────────────────────────────
     private boolean includeParams       = true;   // @param descriptions
@@ -55,6 +62,7 @@ public class DocletConfig {
     public List<String> getSubpackages()   { return subpackages; }
     public List<String> getExcludedPackages() { return excludedPackages; }
     public boolean isCleanOutput()         { return cleanOutput; }
+    public NestedTypes getNestedTypes()     { return nestedTypes; }
     public boolean isIncludeParams()       { return includeParams; }
     public boolean isIncludeReturn()       { return includeReturn; }
     public boolean isIncludeThrows()       { return includeThrows; }
@@ -76,6 +84,7 @@ public class DocletConfig {
         opts.add(strOption("-exclude", "Excluded package prefixes", v -> excludedPackages = splitPackages(v)));
         opts.add(strOption("-excludePackageNames", "Excluded package prefixes", v -> excludedPackages = splitPackages(v)));
         opts.add(boolOption("-cleanOutput",       v -> cleanOutput = v));
+        opts.add(strOption("-nestedTypes", "Nested type handling: omit, inline, or separate", v -> nestedTypes = parseNestedTypes(v)));
 
         opts.add(boolOption("-includeParams",        v -> includeParams = v));
         opts.add(boolOption("-includeReturn",        v -> includeReturn = v));
@@ -127,5 +136,18 @@ public class DocletConfig {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toList();
+    }
+
+    private static NestedTypes parseNestedTypes(String value) {
+        if (value == null || value.isBlank()) {
+            return NestedTypes.INLINE;
+        }
+        return switch (value.trim().toLowerCase(Locale.ROOT)) {
+            case "omit", "skip" -> NestedTypes.OMIT;
+            case "inline", "nest" -> NestedTypes.INLINE;
+            case "separate", "first-level", "firstlevel", "first_level" -> NestedTypes.SEPARATE;
+            default -> throw new IllegalArgumentException(
+                    "-nestedTypes must be one of: omit, inline, separate");
+        };
     }
 }

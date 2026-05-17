@@ -20,6 +20,11 @@ public class MarkdownBuilder {
         return line("### " + text);
     }
 
+    public MarkdownBuilder heading(int level, String text) {
+        int normalizedLevel = Math.max(1, Math.min(6, level));
+        return line("#".repeat(normalizedLevel) + " " + text);
+    }
+
     /** Horizontal rule separator between sections */
     public MarkdownBuilder rule() {
         sb.append("\n---\n\n");
