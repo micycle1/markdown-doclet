@@ -5,6 +5,8 @@ import jdk.javadoc.doclet.DocletEnvironment;
 import jdk.javadoc.doclet.Reporter;
 
 import javax.lang.model.SourceVersion;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.ElementFilter;
 import java.io.IOException;
@@ -59,6 +61,9 @@ public class MarkdownDoclet implements Doclet {
 
         // One writer per class
         for (TypeElement classElement : ElementFilter.typesIn(env.getIncludedElements())) {
+            if (!isIncluded(classElement)) {
+                continue;
+            }
             ClassMarkdownWriter writer = new ClassMarkdownWriter(
                     classElement, env.getDocTrees(), config, reporter);
             try {
@@ -69,5 +74,31 @@ public class MarkdownDoclet implements Doclet {
             }
         }
         return true;
+    }
+
+    private boolean isIncluded(TypeElement classElement) {
+        String packageName = envPackageName(classElement);
+        if (matchesAnyPackagePrefix(packageName, config.getExcludedPackages())) {
+            return false;
+        }
+        return config.getSubpackages().isEmpty()
+                || matchesAnyPackagePrefix(packageName, config.getSubpackages());
+    }
+
+    private static boolean matchesAnyPackagePrefix(String packageName, List<String> prefixes) {
+        for (String prefix : prefixes) {
+            if (packageName.equals(prefix) || packageName.startsWith(prefix + ".")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String envPackageName(TypeElement classElement) {
+        Element element = classElement;
+        while (element != null && !(element instanceof PackageElement)) {
+            element = element.getEnclosingElement();
+        }
+        return element == null ? "" : element.toString();
     }
 }

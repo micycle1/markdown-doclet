@@ -63,6 +63,8 @@ Add JitPack and configure `maven-javadoc-plugin` in the project whose docs you w
         <additionalOptions>
           <additionalOption>-outputDir</additionalOption>
           <additionalOption>${project.basedir}/docs</additionalOption>
+          <additionalOption>-includeThrows</additionalOption>
+          <additionalOption>true</additionalOption>
         </additionalOptions>
       </configuration>
       <executions>
@@ -93,9 +95,27 @@ mvn package
 
 ## Options
 
+When using Maven, pass doclet options through `<additionalOptions>`. Each option that
+takes a value must be written as a pair of `<additionalOption>` entries: first the
+option name, then its value.
+
+```xml
+<additionalOptions>
+  <additionalOption>-outputDir</additionalOption>
+  <additionalOption>${project.build.directory}/markdown-doclet</additionalOption>
+  <additionalOption>-subpackages</additionalOption>
+  <additionalOption>com.example.api</additionalOption>
+  <additionalOption>-excludePackageNames</additionalOption>
+  <additionalOption>com.example.api.internal,com.example.api.generated</additionalOption>
+</additionalOptions>
+```
+
 | Option | Default | Description |
 |---|---:|---|
 | `-outputDir` | `references` | Output directory |
+| `-subpackages` |  | Include only these package prefixes |
+| `-excludePackageNames` |  | Exclude these package prefixes |
+| `-exclude` |  | Alias for `-excludePackageNames` |
 | `-includeParams` | `true` | Include `@param` descriptions |
 | `-includeReturn` | `true` | Include `@return` descriptions |
 | `-includeThrows` | `false` | Include `@throws` / `@exception` descriptions |

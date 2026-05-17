@@ -20,6 +20,8 @@ public class DocletConfig {
 
     // ── Output ────────────────────────────────────────────────────────────────
     private String outputDir = "references";
+    private List<String> subpackages = List.of();
+    private List<String> excludedPackages = List.of();
 
     // ── Per-element inclusion toggles ─────────────────────────────────────────
     private boolean includeParams       = true;   // @param descriptions
@@ -49,6 +51,8 @@ public class DocletConfig {
     // ── Getters ───────────────────────────────────────────────────────────────
 
     public String  getOutputDir()          { return outputDir; }
+    public List<String> getSubpackages()   { return subpackages; }
+    public List<String> getExcludedPackages() { return excludedPackages; }
     public boolean isIncludeParams()       { return includeParams; }
     public boolean isIncludeReturn()       { return includeReturn; }
     public boolean isIncludeThrows()       { return includeThrows; }
@@ -66,6 +70,9 @@ public class DocletConfig {
         List<Doclet.Option> opts = new ArrayList<>();
 
         opts.add(strOption("-outputDir", "Output directory for .md files", v -> outputDir = v));
+        opts.add(strOption("-subpackages", "Included package prefixes", v -> subpackages = splitPackages(v)));
+        opts.add(strOption("-exclude", "Excluded package prefixes", v -> excludedPackages = splitPackages(v)));
+        opts.add(strOption("-excludePackageNames", "Excluded package prefixes", v -> excludedPackages = splitPackages(v)));
 
         opts.add(boolOption("-includeParams",        v -> includeParams = v));
         opts.add(boolOption("-includeReturn",        v -> includeReturn = v));
@@ -107,5 +114,15 @@ public class DocletConfig {
                 setter.accept(Boolean.parseBoolean(args.get(0))); return true;
             }
         };
+    }
+
+    private static List<String> splitPackages(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(value.split("[,;:\\s]+"))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
     }
 }
