@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Generates one Markdown file for a given TypeElement (class/interface/enum).
+ * Renders Markdown for a given TypeElement (class/interface/enum).
  *
  * Output path: {outputDir}/{SimpleName}.md
  *
@@ -42,13 +42,15 @@ public class ClassMarkdownWriter {
     }
 
     public void write(Path outputDir) throws IOException {
-        MarkdownBuilder md = new MarkdownBuilder(config.isMinify());
-        writeType(md, classElement, 1);
-
-        // ── Write file ────────────────────────────────────────────────────────
         String simpleName = classElement.getSimpleName().toString();
         Path file = outputDir.resolve(simpleName + ".md");
-        Files.writeString(file, md.build());
+        Files.writeString(file, render());
+    }
+
+    public String render() {
+        MarkdownBuilder md = new MarkdownBuilder(config.isMinify());
+        writeType(md, classElement, 1);
+        return md.build();
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

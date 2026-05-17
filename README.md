@@ -2,7 +2,7 @@
 
 # markdown-doclet
 
-A Javadoc doclet that writes one Markdown file per class. It is intended for compact API reference output that can be read directly or used as LLM/RAG context.
+A Javadoc doclet that writes compact Markdown API reference output as split files, one combined file, or both. It is intended for API docs that can be read directly or used as LLM/RAG context.
 
 ## Output
 
@@ -11,6 +11,9 @@ docs/
   MyClass.md
   AnotherClass.md
 ```
+
+With `-outputMode single`, the same content is written to `api.md`. With
+`-outputMode both`, `api.md` is written alongside the split files.
 
 Each file looks roughly like:
 
@@ -107,6 +110,7 @@ option name, then its value.
 |---|---:|---|
 | `-outputDir` | `references` | Output directory |
 | `-cleanOutput` | `true` | Delete existing top-level `.md` files in the output directory before writing |
+| `-outputMode` | `split` | Write `split` files, a `single` `api.md`, or `both` |
 | `-nestedTypes` | `inline` | Handle nested classes/enums/interfaces: `omit`, `inline` in the containing file, or write `separate` files |
 | `-minify` | `false` | Collapse repeated blank lines for minimal-token output |
 | `-subpackages` |  | Include only these package prefixes |

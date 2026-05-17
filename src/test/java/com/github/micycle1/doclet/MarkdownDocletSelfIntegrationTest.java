@@ -22,6 +22,8 @@ class MarkdownDocletSelfIntegrationTest {
     private static final Path NESTED_OMIT_OUTPUT_DIR = Path.of("target", "markdown-doclet-nested-omit-test");
     private static final Path NESTED_SEPARATE_OUTPUT_DIR = Path.of("target", "markdown-doclet-nested-separate-test");
     private static final Path MINIFY_OUTPUT_DIR = Path.of("target", "markdown-doclet-minify-test");
+    private static final Path SINGLE_OUTPUT_DIR = Path.of("target", "markdown-doclet-single-test");
+    private static final Path BOTH_OUTPUT_DIR = Path.of("target", "markdown-doclet-both-test");
 
     @Test
     void appliesDocletToThisProject() throws Exception {
@@ -101,6 +103,45 @@ class MarkdownDocletSelfIntegrationTest {
         try (var paths = Files.list(outputDir)) {
             assertFalse(paths.findAny().isPresent(), "Excluded package should not generate Markdown files");
         }
+    }
+
+    @Test
+    void writesOnlyMegafileWhenConfigured() throws Exception {
+        Path outputDir = SINGLE_OUTPUT_DIR.toAbsolutePath();
+        deleteDirectory(outputDir);
+
+        runJavadoc(
+                outputDir,
+                "-outputMode", "single",
+                "com.github.micycle1.doclet");
+
+        assertTrue(Files.isRegularFile(outputDir.resolve("api.md")));
+        assertFalse(Files.exists(outputDir.resolve("MarkdownDoclet.md")));
+
+        String apiMarkdown = Files.readString(outputDir.resolve("api.md"));
+        assertTrue(apiMarkdown.contains("# MarkdownDoclet"));
+        assertTrue(apiMarkdown.contains("# DocletConfig"));
+        assertTrue(apiMarkdown.contains("`public boolean run(DocletEnvironment env)`"));
+        assertFalse(apiMarkdown.contains("```"));
+    }
+
+    @Test
+    void writesSplitFilesAndMegafileWhenConfigured() throws Exception {
+        Path outputDir = BOTH_OUTPUT_DIR.toAbsolutePath();
+        deleteDirectory(outputDir);
+
+        runJavadoc(
+                outputDir,
+                "-outputMode", "both",
+                "com.github.micycle1.doclet");
+
+        assertTrue(Files.isRegularFile(outputDir.resolve("api.md")));
+        assertTrue(Files.isRegularFile(outputDir.resolve("MarkdownDoclet.md")));
+        assertTrue(Files.isRegularFile(outputDir.resolve("DocletConfig.md")));
+
+        String apiMarkdown = Files.readString(outputDir.resolve("api.md"));
+        String docletMarkdown = Files.readString(outputDir.resolve("MarkdownDoclet.md"));
+        assertTrue(apiMarkdown.contains(docletMarkdown.strip()));
     }
 
     @Test

@@ -24,12 +24,19 @@ public class DocletConfig {
         SEPARATE
     }
 
+    public enum OutputMode {
+        SPLIT,
+        SINGLE,
+        BOTH
+    }
+
     // ── Output ────────────────────────────────────────────────────────────────
     private String outputDir = "references";
     private List<String> subpackages = List.of();
     private List<String> excludedPackages = List.of();
     private boolean cleanOutput = true;
     private NestedTypes nestedTypes = NestedTypes.INLINE;
+    private OutputMode outputMode = OutputMode.SPLIT;
     private boolean minify = false;
 
     // ── Per-element inclusion toggles ─────────────────────────────────────────
@@ -64,6 +71,7 @@ public class DocletConfig {
     public List<String> getExcludedPackages() { return excludedPackages; }
     public boolean isCleanOutput()         { return cleanOutput; }
     public NestedTypes getNestedTypes()     { return nestedTypes; }
+    public OutputMode getOutputMode()       { return outputMode; }
     public boolean isMinify()              { return minify; }
     public boolean isIncludeParams()       { return includeParams; }
     public boolean isIncludeReturn()       { return includeReturn; }
@@ -87,6 +95,7 @@ public class DocletConfig {
         opts.add(strOption("-excludePackageNames", "Excluded package prefixes", v -> excludedPackages = splitPackages(v)));
         opts.add(boolOption("-cleanOutput",       v -> cleanOutput = v));
         opts.add(strOption("-nestedTypes", "Nested type handling: omit, inline, or separate", v -> nestedTypes = parseNestedTypes(v)));
+        opts.add(strOption("-outputMode", "Output files: split, single, or both", v -> outputMode = parseOutputMode(v)));
         opts.add(boolOption("-minify",            v -> minify = v));
 
         opts.add(boolOption("-includeParams",        v -> includeParams = v));
@@ -151,6 +160,19 @@ public class DocletConfig {
             case "separate", "first-level", "firstlevel", "first_level" -> NestedTypes.SEPARATE;
             default -> throw new IllegalArgumentException(
                     "-nestedTypes must be one of: omit, inline, separate");
+        };
+    }
+
+    private static OutputMode parseOutputMode(String value) {
+        if (value == null || value.isBlank()) {
+            return OutputMode.SPLIT;
+        }
+        return switch (value.trim().toLowerCase(Locale.ROOT)) {
+            case "split" -> OutputMode.SPLIT;
+            case "single", "mega", "megafile", "one" -> OutputMode.SINGLE;
+            case "both", "split+single", "split-single", "split_with_single", "split-with-single" -> OutputMode.BOTH;
+            default -> throw new IllegalArgumentException(
+                    "-outputMode must be one of: split, single, both");
         };
     }
 }

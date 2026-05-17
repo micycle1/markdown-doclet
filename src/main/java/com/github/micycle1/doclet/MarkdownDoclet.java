@@ -16,13 +16,14 @@ import java.nio.file.Path;
 import java.util.*;
 
 /**
- * A Javadoc doclet that generates one Markdown file per class,
- * designed to be concise and LLM-readable.
+ * A Javadoc doclet that generates concise, LLM-readable Markdown API docs.
  *
  * Invoked via maven-javadoc-plugin's <doclet> configuration.
  * All options are passed as -J flags (see DocletConfig).
  */
 public class MarkdownDoclet implements Doclet {
+
+    private static final String MEGAFILE_NAME = "api.md";
 
     private DocletConfig config;
     private Reporter reporter;
@@ -65,17 +66,54 @@ public class MarkdownDoclet implements Doclet {
 
         // One writer per output type. Nested types are inline by default.
         Set<TypeElement> outputTypes = collectOutputTypes(env);
+        StringBuilder megafile = shouldWriteMegafile() ? new StringBuilder() : null;
         for (TypeElement classElement : outputTypes) {
             ClassMarkdownWriter writer = new ClassMarkdownWriter(
                     classElement, env.getDocTrees(), config, reporter);
             try {
-                writer.write(outDir);
+                String markdown = writer.render();
+                if (shouldWriteSplitFiles()) {
+                    writeSplitFile(outDir, classElement, markdown);
+                }
+                if (megafile != null) {
+                    appendMegafileSection(megafile, markdown);
+                }
             } catch (IOException e) {
                 reporter.print(javax.tools.Diagnostic.Kind.ERROR,
                         "Error writing " + classElement.getSimpleName() + ": " + e.getMessage());
             }
         }
+        if (megafile != null) {
+            try {
+                Files.writeString(outDir.resolve(MEGAFILE_NAME), megafile.toString());
+            } catch (IOException e) {
+                reporter.print(javax.tools.Diagnostic.Kind.ERROR,
+                        "Error writing " + MEGAFILE_NAME + ": " + e.getMessage());
+            }
+        }
         return true;
+    }
+
+    private boolean shouldWriteSplitFiles() {
+        return config.getOutputMode() == DocletConfig.OutputMode.SPLIT
+                || config.getOutputMode() == DocletConfig.OutputMode.BOTH;
+    }
+
+    private boolean shouldWriteMegafile() {
+        return config.getOutputMode() == DocletConfig.OutputMode.SINGLE
+                || config.getOutputMode() == DocletConfig.OutputMode.BOTH;
+    }
+
+    private static void writeSplitFile(Path outDir, TypeElement classElement, String markdown) throws IOException {
+        Path file = outDir.resolve(classElement.getSimpleName() + ".md");
+        Files.writeString(file, markdown);
+    }
+
+    private void appendMegafileSection(StringBuilder megafile, String markdown) {
+        if (!megafile.isEmpty() && !config.isMinify()) {
+            megafile.append('\n');
+        }
+        megafile.append(markdown);
     }
 
     private Set<TypeElement> collectOutputTypes(DocletEnvironment env) {
