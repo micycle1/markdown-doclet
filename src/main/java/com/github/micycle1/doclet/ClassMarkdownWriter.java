@@ -20,14 +20,9 @@ import java.util.Set;
  * Structure:
  *   # ClassName
  *   package + class-level javadoc
- *   ---
- *   ## Fields (if enabled)
- *   ## Constructors (if enabled)
- *   ## methodName   (one section per method)
- *   ```java signature```
- *   description
- *   **Parameters:** ...
- *   **Returns:** ...
+ *   `signature`
+ *   params: ...
+ *   returns: ...
  */
 public class ClassMarkdownWriter {
 
@@ -47,7 +42,7 @@ public class ClassMarkdownWriter {
     }
 
     public void write(Path outputDir) throws IOException {
-        MarkdownBuilder md = new MarkdownBuilder();
+        MarkdownBuilder md = new MarkdownBuilder(config.isMinify());
         writeType(md, classElement, 1);
 
         // ── Write file ────────────────────────────────────────────────────────
@@ -62,8 +57,7 @@ public class ClassMarkdownWriter {
         // ── Class header ──────────────────────────────────────────────────────
         String simpleName = typeElement.getSimpleName().toString();
         md.heading(headingLevel, simpleName);
-        md.line();
-        md.line("**Package:** `" + packageName(typeElement) + "`");
+        md.line("package: `" + packageName(typeElement) + "`");
         md.line();
 
         // Class-level doc comment
@@ -82,7 +76,7 @@ public class ClassMarkdownWriter {
                     .filter(f -> isVisible(f))
                     .toList();
             if (!visible.isEmpty()) {
-                md.heading(headingLevel + 1, "Fields");
+                md.heading(headingLevel + 1, "fields");
                 for (VariableElement field : visible) {
                     writeField(md, field);
                 }
@@ -97,7 +91,6 @@ public class ClassMarkdownWriter {
                     .filter(c -> isVisible(c))
                     .toList();
             if (!visible.isEmpty()) {
-                md.heading(headingLevel + 1, "Constructors");
                 for (ExecutableElement ctor : visible) {
                     writeExecutable(md, typeElement, ctor, true, headingLevel + 1);
                 }
@@ -118,10 +111,8 @@ public class ClassMarkdownWriter {
                     .filter(this::isVisible)
                     .toList();
             if (!nestedTypes.isEmpty()) {
-                md.heading(headingLevel + 1, "Nested Types");
-                md.line();
                 for (TypeElement nestedType : nestedTypes) {
-                    writeType(md, nestedType, headingLevel + 2);
+                    writeType(md, nestedType, headingLevel + 1);
                 }
             }
         }
@@ -133,18 +124,15 @@ public class ClassMarkdownWriter {
 
         String doc = CommentUtils.getMainDescription(docTrees, field);
         if (!doc.isBlank()) {
+            if (!config.isMinify()) {
+                md.line();
+            }
             md.line(doc);
         }
         md.line();
     }
 
     private void writeExecutable(MarkdownBuilder md, TypeElement owner, ExecutableElement exec, boolean isCtor, int headingLevel) {
-        String name = isCtor
-                ? owner.getSimpleName().toString()
-                : exec.getSimpleName().toString();
-
-        md.heading(headingLevel, name);
-
         // Signature
         String sig = buildSignature(owner, exec, isCtor);
         md.codeBlock(sig, "java");
@@ -153,16 +141,17 @@ public class ClassMarkdownWriter {
         if (config.isIncludeDeprecated()) {
             String dep = CommentUtils.getTagText(docTrees, exec, DocTree.Kind.DEPRECATED);
             if (!dep.isBlank()) {
-                md.line("> ⚠️ **Deprecated:** " + dep);
-                md.line();
+                md.line("deprecated: " + dep);
             }
         }
 
         // Main description
         String desc = CommentUtils.getMainDescription(docTrees, exec);
         if (!desc.isBlank()) {
+            if (!config.isMinify()) {
+                md.line();
+            }
             md.line(desc);
-            md.line();
         }
 
         // Params
@@ -170,16 +159,15 @@ public class ClassMarkdownWriter {
             List<String> paramDocs = CommentUtils.getParamDocs(docTrees, exec);
             if (!paramDocs.isEmpty()) {
                 if (config.isCompactParams()) {
-                    // Inline: **Parameters:** `a` — desc  `b` — desc
-                    md.append("**Parameters:** ");
+                    // Inline: params: `a` - desc  `b` - desc
+                    md.append("params: ");
                     md.append(String.join("  ", paramDocs));
                     md.line();
                 } else {
                     // One bullet per param
-                    md.line("**Parameters:**");
+                    md.line("params:");
                     paramDocs.forEach(p -> md.line("- " + p));
                 }
-                md.line();
             }
         }
 
@@ -187,8 +175,7 @@ public class ClassMarkdownWriter {
         if (config.isIncludeReturn() && !isCtor) {
             String ret = CommentUtils.getTagText(docTrees, exec, DocTree.Kind.RETURN);
             if (!ret.isBlank()) {
-                md.line("**Returns:** " + ret);
-                md.line();
+                md.line("returns: " + ret);
             }
         }
 
@@ -196,11 +183,11 @@ public class ClassMarkdownWriter {
         if (config.isIncludeThrows()) {
             List<String> throwsDocs = CommentUtils.getThrowsDocs(docTrees, exec);
             if (!throwsDocs.isEmpty()) {
-                md.line("**Throws:**");
+                md.line("throws:");
                 throwsDocs.forEach(t -> md.line("- " + t));
-                md.line();
             }
         }
+        md.line();
     }
 
     private boolean isVisible(Element e) {

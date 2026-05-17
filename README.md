@@ -16,24 +16,15 @@ Each file looks roughly like:
 
 ````markdown
 # MyClass
-
-**Package:** `com.example`
+package: `com.example`
 
 Class description.
 
----
-
-## myMethod
-
-```java
-public String myMethod(int value)
-```
+`public String myMethod(int value)`
 
 Method description.
-
-**Parameters:** `value` - description
-
-**Returns:** description
+params: `value` - description
+returns: description
 ````
 
 ## Maven Usage
@@ -117,6 +108,7 @@ option name, then its value.
 | `-outputDir` | `references` | Output directory |
 | `-cleanOutput` | `true` | Delete existing top-level `.md` files in the output directory before writing |
 | `-nestedTypes` | `inline` | Handle nested classes/enums/interfaces: `omit`, `inline` in the containing file, or write `separate` files |
+| `-minify` | `false` | Collapse repeated blank lines for minimal-token output |
 | `-subpackages` |  | Include only these package prefixes |
 | `-excludePackageNames` |  | Exclude these package prefixes |
 | `-exclude` |  | Alias for `-excludePackageNames` |

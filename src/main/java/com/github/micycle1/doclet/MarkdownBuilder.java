@@ -7,6 +7,15 @@ package com.github.micycle1.doclet;
 public class MarkdownBuilder {
 
     private final StringBuilder sb = new StringBuilder();
+    private final boolean minify;
+
+    public MarkdownBuilder() {
+        this(false);
+    }
+
+    public MarkdownBuilder(boolean minify) {
+        this.minify = minify;
+    }
 
     public MarkdownBuilder h1(String text) {
         return line("# " + text);
@@ -25,9 +34,8 @@ public class MarkdownBuilder {
         return line("#".repeat(normalizedLevel) + " " + text);
     }
 
-    /** Horizontal rule separator between sections */
+    /** No-op retained for compatibility with older writer flow. */
     public MarkdownBuilder rule() {
-        sb.append("\n---\n\n");
         return this;
     }
 
@@ -49,20 +57,16 @@ public class MarkdownBuilder {
         return this;
     }
 
-    /**
-     * Fenced code block.
-     *
-     * @param code     the code content
-     * @param language fence language hint, e.g. "java"
-     */
+    /** Inline code line. */
     public MarkdownBuilder codeBlock(String code, String language) {
-        sb.append("```").append(language).append("\n")
-          .append(code).append("\n")
-          .append("```\n\n");
-        return this;
+        return line("`" + code + "`");
     }
 
     public String build() {
-        return sb.toString();
+        String output = sb.toString().trim();
+        if (minify) {
+            output = output.replaceAll("\n{2,}", "\n");
+        }
+        return output + "\n";
     }
 }

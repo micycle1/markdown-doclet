@@ -59,7 +59,7 @@ public final class CommentUtils {
 
     /**
      * Returns a list of formatted param descriptions.
-     * Each entry is: "`paramName` — description"
+     * Each entry is: "`paramName` - description"
      */
     public static List<String> getParamDocs(DocTrees docTrees, ExecutableElement method) {
         DocCommentTree tree = docTrees.getDocCommentTree(method);
@@ -71,14 +71,14 @@ public final class CommentUtils {
             ParamTree param = (ParamTree) tag;
             String name = param.getName().toString();
             String desc = renderBody(param.getDescription()).trim();
-            result.add("`" + name + "` — " + desc);
+            result.add("`" + name + "` - " + desc);
         }
         return result;
     }
 
     /**
      * Returns a list of formatted throws descriptions.
-     * Each entry is: "`ExceptionType` — description"
+     * Each entry is: "`ExceptionType` - description"
      */
     public static List<String> getThrowsDocs(DocTrees docTrees, ExecutableElement method) {
         DocCommentTree tree = docTrees.getDocCommentTree(method);
@@ -91,7 +91,7 @@ public final class CommentUtils {
             ThrowsTree t = (ThrowsTree) tag;
             String type = t.getExceptionName().toString();
             String desc = renderBody(t.getDescription()).trim();
-            result.add("`" + type + "` — " + desc);
+            result.add("`" + type + "` - " + desc);
         }
         return result;
     }

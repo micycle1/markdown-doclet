@@ -30,6 +30,7 @@ public class DocletConfig {
     private List<String> excludedPackages = List.of();
     private boolean cleanOutput = true;
     private NestedTypes nestedTypes = NestedTypes.INLINE;
+    private boolean minify = false;
 
     // ── Per-element inclusion toggles ─────────────────────────────────────────
     private boolean includeParams       = true;   // @param descriptions
@@ -63,6 +64,7 @@ public class DocletConfig {
     public List<String> getExcludedPackages() { return excludedPackages; }
     public boolean isCleanOutput()         { return cleanOutput; }
     public NestedTypes getNestedTypes()     { return nestedTypes; }
+    public boolean isMinify()              { return minify; }
     public boolean isIncludeParams()       { return includeParams; }
     public boolean isIncludeReturn()       { return includeReturn; }
     public boolean isIncludeThrows()       { return includeThrows; }
@@ -85,6 +87,7 @@ public class DocletConfig {
         opts.add(strOption("-excludePackageNames", "Excluded package prefixes", v -> excludedPackages = splitPackages(v)));
         opts.add(boolOption("-cleanOutput",       v -> cleanOutput = v));
         opts.add(strOption("-nestedTypes", "Nested type handling: omit, inline, or separate", v -> nestedTypes = parseNestedTypes(v)));
+        opts.add(boolOption("-minify",            v -> minify = v));
 
         opts.add(boolOption("-includeParams",        v -> includeParams = v));
         opts.add(boolOption("-includeReturn",        v -> includeReturn = v));

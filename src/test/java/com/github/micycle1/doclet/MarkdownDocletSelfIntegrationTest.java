@@ -21,6 +21,7 @@ class MarkdownDocletSelfIntegrationTest {
     private static final Path FILTER_OUTPUT_DIR = Path.of("target", "markdown-doclet-filter-test");
     private static final Path NESTED_OMIT_OUTPUT_DIR = Path.of("target", "markdown-doclet-nested-omit-test");
     private static final Path NESTED_SEPARATE_OUTPUT_DIR = Path.of("target", "markdown-doclet-nested-separate-test");
+    private static final Path MINIFY_OUTPUT_DIR = Path.of("target", "markdown-doclet-minify-test");
 
     @Test
     void appliesDocletToThisProject() throws Exception {
@@ -42,22 +43,46 @@ class MarkdownDocletSelfIntegrationTest {
 
         String docletMarkdown = Files.readString(outputDir.resolve("MarkdownDoclet.md"));
         assertTrue(docletMarkdown.contains("# MarkdownDoclet"));
-        assertTrue(docletMarkdown.contains("**Package:** `com.github.micycle1.doclet`"));
-        assertTrue(docletMarkdown.contains("## run"));
-        assertTrue(docletMarkdown.contains("```java\npublic boolean run(DocletEnvironment env)\n```"));
+        assertTrue(docletMarkdown.contains("package: `com.github.micycle1.doclet`"));
+        assertTrue(docletMarkdown.contains("`public boolean run(DocletEnvironment env)`"));
+        assertFalse(docletMarkdown.contains("`run`\n"));
+        assertFalse(docletMarkdown.contains("```"));
+        assertFalse(docletMarkdown.contains("---"));
+        assertTrue(docletMarkdown.contains("\n\n"));
 
         String builderMarkdown = Files.readString(outputDir.resolve("MarkdownBuilder.md"));
-        assertTrue(builderMarkdown.contains("## codeBlock"));
-        assertTrue(builderMarkdown.contains("```java\npublic MarkdownBuilder codeBlock(String code, String language)\n```"));
+        assertTrue(builderMarkdown.contains("`public MarkdownBuilder codeBlock(String code, String language)`"));
+        assertFalse(builderMarkdown.contains("`codeBlock`\n"));
         assertTrue(builderMarkdown.contains(
                 "Thin wrapper around StringBuilder with convenience methods for generating clean Markdown output."));
         assertFalse(builderMarkdown.contains("convenience methods\nfor generating clean Markdown output."));
-        assertTrue(builderMarkdown.contains("**Parameters:** `code`"));
+        assertTrue(builderMarkdown.contains("\n\n"));
 
         String configMarkdown = Files.readString(outputDir.resolve("DocletConfig.md"));
-        assertTrue(configMarkdown.contains("## Nested Types"));
-        assertTrue(configMarkdown.contains("### NestedTypes"));
-        assertTrue(configMarkdown.contains("#### valueOf"));
+        assertTrue(configMarkdown.contains("## NestedTypes"));
+        assertTrue(configMarkdown.contains("`public static DocletConfig.NestedTypes valueOf(String name)`"));
+
+        String commentUtilsMarkdown = Files.readString(outputDir.resolve("CommentUtils.md"));
+        assertTrue(commentUtilsMarkdown.contains(
+                "`public static String getTagText(DocTrees docTrees, Element element, DocTree.Kind kind)`\n\n"
+                        + "Returns the text for a specific block tag"));
+        assertFalse(commentUtilsMarkdown.contains("`getTagText`\n"));
+    }
+
+    @Test
+    void minifiesBlankLinesWhenConfigured() throws Exception {
+        Path outputDir = MINIFY_OUTPUT_DIR.toAbsolutePath();
+        deleteDirectory(outputDir);
+
+        runJavadoc(
+                outputDir,
+                "-minify", "true",
+                "com.github.micycle1.doclet");
+
+        String docletMarkdown = Files.readString(outputDir.resolve("MarkdownDoclet.md"));
+        assertTrue(docletMarkdown.contains("`public boolean run(DocletEnvironment env)`"));
+        assertFalse(docletMarkdown.contains("`run`\n"));
+        assertFalse(docletMarkdown.contains("\n\n"));
     }
 
     @Test
@@ -89,7 +114,7 @@ class MarkdownDocletSelfIntegrationTest {
                 "com.github.micycle1.doclet");
 
         String configMarkdown = Files.readString(outputDir.resolve("DocletConfig.md"));
-        assertFalse(configMarkdown.contains("## Nested Types"));
+        assertFalse(configMarkdown.contains("## NestedTypes"));
         assertFalse(Files.exists(outputDir.resolve("NestedTypes.md")));
     }
 
@@ -104,12 +129,13 @@ class MarkdownDocletSelfIntegrationTest {
                 "com.github.micycle1.doclet");
 
         String configMarkdown = Files.readString(outputDir.resolve("DocletConfig.md"));
-        assertFalse(configMarkdown.contains("## Nested Types"));
+        assertFalse(configMarkdown.contains("## NestedTypes"));
         assertTrue(Files.isRegularFile(outputDir.resolve("NestedTypes.md")));
 
         String nestedMarkdown = Files.readString(outputDir.resolve("NestedTypes.md"));
         assertTrue(nestedMarkdown.contains("# NestedTypes"));
-        assertTrue(nestedMarkdown.contains("## valueOf"));
+        assertTrue(nestedMarkdown.contains("`public static DocletConfig.NestedTypes valueOf(String name)`"));
+        assertFalse(nestedMarkdown.contains("`valueOf`\n"));
     }
 
     private static void runJavadoc(Path outputDir, String... extraArgs) {
